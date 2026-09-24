@@ -45,8 +45,6 @@ type Options struct {
 	Store    *state.Store
 	// Notifiers 为 nil 时按配置自动构造; 传空切片表示不使用任何通道.
 	Notifiers []notify.Notifier
-	// ConfigPath 用于推导默认状态文件位置.
-	ConfigPath string
 	// Now 用于注入时间, 为 nil 时使用 time.Now.
 	Now func() time.Time
 }
@@ -78,7 +76,11 @@ func New(opts Options) (*Service, error) {
 
 	store := opts.Store
 	if store == nil {
-		opened, err := state.Open(opts.Config.StatePath(opts.ConfigPath))
+		statePath, err := opts.Config.StatePath()
+		if err != nil {
+			return nil, err
+		}
+		opened, err := state.Open(statePath)
 		if err != nil {
 			return nil, err
 		}

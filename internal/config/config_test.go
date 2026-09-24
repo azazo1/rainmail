@@ -1,6 +1,7 @@
 package config
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -69,5 +70,65 @@ func TestDurationParsesStringAndSeconds(t *testing.T) {
 	}
 	if err := d.UnmarshalTOML("半小时"); err == nil {
 		t.Fatal("非法时长应报错")
+	}
+}
+
+func TestResolveUsesFixedConfigPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(EnvConfigPath, "")
+
+	path, err := Resolve("")
+	if err != nil {
+		t.Fatalf("解析默认路径失败: %v", err)
+	}
+	want := filepath.Join(home, ".config", "rainmail", "config.toml")
+	if path != want {
+		t.Fatalf("默认配置路径应为 %s, 实际为 %s", want, path)
+	}
+}
+
+func TestResolveHonorsExplicitAndEnv(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	explicit, err := Resolve("/tmp/rainmail-explicit.toml")
+	if err != nil {
+		t.Fatalf("解析显式路径失败: %v", err)
+	}
+	if explicit != "/tmp/rainmail-explicit.toml" {
+		t.Fatalf("--config 应被原样采用, 实际为 %s", explicit)
+	}
+
+	t.Setenv(EnvConfigPath, "/tmp/rainmail-env.toml")
+	fromEnv, err := Resolve("")
+	if err != nil {
+		t.Fatalf("解析环境变量路径失败: %v", err)
+	}
+	if fromEnv != "/tmp/rainmail-env.toml" {
+		t.Fatalf("RAINMAIL_CONFIG 应被采用, 实际为 %s", fromEnv)
+	}
+}
+
+func TestStatePathUsesLocalStateDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	cfg := Default()
+	path, err := cfg.StatePath()
+	if err != nil {
+		t.Fatalf("解析状态文件路径失败: %v", err)
+	}
+	want := filepath.Join(home, ".local", "state", "rainmail", "state.json")
+	if path != want {
+		t.Fatalf("状态文件路径应为 %s, 实际为 %s", want, path)
+	}
+
+	cfg.Repeat.StateFile = "/tmp/rainmail-state.json"
+	custom, err := cfg.StatePath()
+	if err != nil {
+		t.Fatalf("解析自定义状态文件路径失败: %v", err)
+	}
+	if custom != "/tmp/rainmail-state.json" {
+		t.Fatalf("state_file 应被采用, 实际为 %s", custom)
 	}
 }

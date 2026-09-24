@@ -16,9 +16,29 @@ import (
 // EnvConfigPath 是覆盖配置文件路径的环境变量名.
 const EnvConfigPath = "RAINMAIL_CONFIG"
 
+// ConfigDir 返回 rainmail 的配置目录.
+//
+// 三个平台统一为 ~/.config/rainmail, 不区分 macOS / Windows 惯例, 也不受 XDG_CONFIG_HOME 影响.
+func ConfigDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("无法确定用户主目录, 请用 --config 指定配置文件路径: %w", err)
+	}
+	return filepath.Join(home, ".config", "rainmail"), nil
+}
+
+// DefaultPath 返回默认配置文件路径.
+func DefaultPath() (string, error) {
+	dir, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return absPath(filepath.Join(dir, "config.toml"))
+}
+
 // Resolve 按优先级确定配置文件路径, 但不保证文件真实存在.
 //
-// 优先级: 显式指定 > RAINMAIL_CONFIG 环境变量 > 平台配置目录 > 当前目录.
+// 优先级: --config 参数 > RAINMAIL_CONFIG 环境变量 > ~/.config/rainmail/config.toml.
 func Resolve(explicit string) (string, error) {
 	if explicit != "" {
 		return absPath(explicit)
@@ -26,19 +46,7 @@ func Resolve(explicit string) (string, error) {
 	if env := os.Getenv(EnvConfigPath); env != "" {
 		return absPath(env)
 	}
-
-	var candidates []string
-	if dir, err := os.UserConfigDir(); err == nil {
-		candidates = append(candidates, filepath.Join(dir, "rainmail", "config.toml"))
-	}
-	candidates = append(candidates, "rainmail.toml", "config.toml")
-
-	for _, candidate := range candidates {
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return absPath(candidate)
-		}
-	}
-	return absPath(candidates[0])
+	return DefaultPath()
 }
 
 // Exists 判断配置文件是否存在.
@@ -199,8 +207,4 @@ func absPath(p string) (string, error) {
 		return "", fmt.Errorf("解析路径 %s 失败: %w", p, err)
 	}
 	return abs, nil
-}
-
-func joinDir(configPath, name string) string {
-	return filepath.Join(filepath.Dir(configPath), name)
 }

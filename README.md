@@ -38,9 +38,9 @@ go install github.com/azazo1/rainmail@latest
 
 ## 配置
 
-配置文件使用 TOML. 查找顺序为 `--config` 参数, `RAINMAIL_CONFIG` 环境变量,
-平台配置目录 (`~/.config/rainmail/config.toml`, macOS 为 `~/Library/Application Support/rainmail/config.toml`,
-Windows 为 `%AppData%\rainmail\config.toml`), 最后是当前目录的 `rainmail.toml` / `config.toml`.
+配置文件使用 TOML, 三个平台统一放在 `~/.config/rainmail/config.toml`.
+查找顺序为 `--config` 参数, `RAINMAIL_CONFIG` 环境变量, 最后落到上述默认路径.
+`rainmail config path` 打印当前生效的路径, `rainmail config show` 打印生效配置 (口令与密钥已打码).
 
 完整字段与注释见 [internal/config/example.toml](internal/config/example.toml),
 可以直接用 `rainmail config init` 生成一份. `rainmail config path` 打印当前生效的路径,
@@ -107,7 +107,7 @@ custom 接口支持两种响应形态:
 ### 去重与免打扰
 
 同一地点, 同一降水类型, 同一个起始小时视为同一场降水. 提醒发出后写入状态文件
-(`state.json`, 默认与配置文件同目录), 在 `repeat.cooldown` 内不会再次提醒.
+(`~/.local/state/rainmail/state.json`), 在 `repeat.cooldown` 内不会再次提醒.
 判定结果变化或冷却结束时会重新提醒.
 
 `notify.quiet_hours` 可以配置免打扰时段 (例如 `["23:30-07:00"]`, 支持跨零点),

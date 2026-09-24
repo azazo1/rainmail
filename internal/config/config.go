@@ -8,6 +8,8 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -399,12 +401,32 @@ func (c *Config) validateEmail() []error {
 	return errs
 }
 
-// StatePath 返回状态文件路径, state_file 留空时与配置文件同目录.
-func (c *Config) StatePath(configPath string) string {
-	if c.Repeat.StateFile != "" {
-		return c.Repeat.StateFile
+// StateDir 返回运行状态目录.
+//
+// 三个平台统一为 ~/.local/state/rainmail, 与配置分离, 状态丢失只会导致重复提醒一次.
+func StateDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("无法确定用户主目录, 请用 repeat.state_file 指定状态文件路径: %w", err)
 	}
-	return joinDir(configPath, "state.json")
+	return filepath.Join(home, ".local", "state", "rainmail"), nil
+}
+
+// DefaultStatePath 返回未指定 state_file 时的状态文件路径.
+func DefaultStatePath() (string, error) {
+	dir, err := StateDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "state.json"), nil
+}
+
+// StatePath 返回状态文件路径, state_file 留空时使用 DefaultStatePath.
+func (c *Config) StatePath() (string, error) {
+	if c.Repeat.StateFile != "" {
+		return c.Repeat.StateFile, nil
+	}
+	return DefaultStatePath()
 }
 
 // MaskSecrets 返回把敏感字段打码后的副本, 用于展示.

@@ -67,10 +67,16 @@ func newConfigPathCommand(flags *globalFlags) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			statePath := filepath.Join(filepath.Dir(path), "state.json")
+
+			statePath, err := config.DefaultStatePath()
+			if err != nil {
+				return err
+			}
 			if config.Exists(path) {
-				if cfg, _, err := config.Load(path); err == nil {
-					statePath = cfg.StatePath(path)
+				if cfg, _, loadErr := config.Load(path); loadErr == nil {
+					if custom, stateErr := cfg.StatePath(); stateErr == nil {
+						statePath = custom
+					}
 				}
 			}
 
@@ -93,9 +99,14 @@ func newConfigShowCommand(flags *globalFlags) *cobra.Command {
 			}
 			defer rt.Close()
 
+			statePath, err := rt.cfg.StatePath()
+			if err != nil {
+				return err
+			}
+
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "# 配置文件: %s\n", rt.path)
-			fmt.Fprintf(out, "# 状态文件: %s\n\n", rt.cfg.StatePath(rt.path))
+			fmt.Fprintf(out, "# 状态文件: %s\n\n", statePath)
 			return toml.NewEncoder(out).Encode(rt.cfg.MaskSecrets())
 		},
 	}

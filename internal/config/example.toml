@@ -108,7 +108,7 @@ sound = false
 [repeat]
 # 同一场降水的提醒冷却时间, 期间不重复打扰.
 cooldown = "3h"
-# 状态文件路径, 留空表示与配置文件同目录的 state.json.
+# 状态文件路径, 留空表示 ~/.local/state/rainmail/state.json.
 state_file = ""
 
 [log]

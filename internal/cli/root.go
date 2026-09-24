@@ -126,9 +126,8 @@ func (r *runtime) Close() {
 // newService 依据配置构造业务服务.
 func (r *runtime) newService() (*app.Service, error) {
 	return app.New(app.Options{
-		Config:     r.cfg,
-		Logger:     r.logger,
-		ConfigPath: r.path,
+		Config: r.cfg,
+		Logger: r.logger,
 	})
 }
 
