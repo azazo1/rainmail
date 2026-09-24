@@ -1,0 +1,120 @@
+# rainmail 配置文件 (TOML)
+#
+# 结构版本, 加载时会按版本自动迁移, 一般不需要手工修改.
+config_version = 1
+
+[location]
+# 用于提醒文案的地点名称.
+name = "上海"
+latitude = 31.2304
+longitude = 121.4737
+# IANA 时区名, 留空表示采用天气接口返回的时区.
+timezone = "Asia/Shanghai"
+
+[weather]
+# 天气接口: open-meteo | openweathermap | qweather | seniverse | custom
+#
+#   open-meteo      免费, 无需 key, 覆盖全球
+#   openweathermap  需要 key, 免费额度为 5 天 / 3 小时粒度
+#   qweather        和风天气, 需要 key, 国内访问稳定
+#   seniverse       心知天气, 需要 key, 国内访问稳定
+#   custom          任意 JSON 接口, 用 gjson 路径映射, 见本文件末尾
+provider = "open-meteo"
+# 向后观察多少小时.
+lookahead_hours = 12
+# 常驻模式 (rainmail run) 的轮询间隔.
+check_interval = "30m"
+# 小时降水量达到该值 (mm) 视为确定降水.
+min_precipitation_mm = 0.1
+# 降水概率达到该值 (%) 视为可能降水.
+min_probability = 60
+# 是否把降雪也纳入提醒.
+include_snow = false
+# 单次接口请求超时.
+timeout = "15s"
+
+# ---- 各接口的连接参数, 只有 provider 指向的那一组会被使用 ----
+
+[weather.providers.open-meteo]
+base_url = "https://api.open-meteo.com/v1/forecast"
+
+[weather.providers.openweathermap]
+base_url = "https://api.openweathermap.org/data/2.5/forecast"
+api_key = "${OWM_API_KEY}"
+language = "zh_cn"
+units = "metric"
+
+[weather.providers.qweather]
+base_url = "https://devapi.qweather.com/v7/weather/24h"
+api_key = "${QWEATHER_API_KEY}"
+language = "zh"
+
+[weather.providers.seniverse]
+base_url = "https://api.seniverse.com/v3/weather/hourly.json"
+api_key = "${SENIVERSE_API_KEY}"
+language = "zh-Hans"
+units = "c"
+
+# custom: 适配任意返回 JSON 的接口.
+# url 中的 {lat} {lon} {timezone} {hours} 会被替换为本次查询的取值.
+[weather.providers.custom]
+url = "https://example.com/api/weather?lat={lat}&lon={lon}&tz={timezone}"
+method = "GET"
+headers = { Authorization = "Bearer ${CUSTOM_WEATHER_TOKEN}" }
+# 响应是 "对象数组" 时填数组路径(例如 list), 下方各 path 相对数组元素书写;
+# 响应是 "并行数组" 时留空, 各 path 从响应根写起.
+items_path = ""
+time_path = "hourly.time"
+# 概率字段须为 0-100 的百分数, 若接口返回 0-1 的比例请在接口侧换算.
+probability_path = "hourly.precipitation_probability"
+precipitation_path = "hourly.precipitation"
+weather_code_path = "hourly.weather_code"
+temperature_path = "hourly.temperature_2m"
+# weather_code 所属的码表: none | wmo | owm | qweather | seniverse
+# 填 none 时只依据降水量判断, 适合接口码值含义不明的场景.
+code_system = "none"
+# 时间字段的 Go 时间布局, 留空时依次尝试 RFC3339 与 Unix 秒 / 毫秒.
+time_format = "2006-01-02T15:04"
+
+[notify]
+# 概率达标但降水量未达标时是否也提醒.
+notify_on_possible = true
+# 免打扰时段, 例如 ["23:30-07:00"], 支持跨零点; 留空表示不限制.
+quiet_hours = []
+# 免打扰时段是否连邮件一起跳过.
+quiet_hours_skip_email = false
+
+[notify.email]
+enabled = true
+host = "smtp.qq.com"
+port = 465
+# tls (推荐 465) | starttls (推荐 587) | none (25)
+encryption = "tls"
+username = "you@qq.com"
+# 用 ${VAR} 引用环境变量, 避免明文口令落在配置文件里.
+password = "${RAINMAIL_SMTP_PASSWORD}"
+from = "you@qq.com"
+from_name = "rainmail"
+to = ["someone@example.com"]
+subject_prefix = "[rainmail]"
+insecure_skip_verify = false
+timeout = "20s"
+
+[notify.system]
+enabled = true
+# macOS 是否播放提示音.
+sound = false
+
+[repeat]
+# 同一场降水的提醒冷却时间, 期间不重复打扰.
+cooldown = "3h"
+# 状态文件路径, 留空表示与配置文件同目录的 state.json.
+state_file = ""
+
+[log]
+# debug | info | warn | error
+level = "info"
+# text | json
+format = "text"
+# 追加写入的日志文件, 留空表示只输出到标准错误.
+file = ""

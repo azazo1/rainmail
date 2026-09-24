@@ -1,0 +1,29 @@
+# 构建产物
+/dist/
+/rainmail
+/rainmail.exe
+
+# 本地真实配置与运行状态, 示例配置在 internal/config/example.toml
+/rainmail.toml
+/config.toml
+/state.json
+/state.json.tmp
+*.bak
+*.corrupt
+*.log
+
+# Go 依赖与测试产物
+/vendor/
+*.test
+coverage.out
+
+# 编辑器与系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 临时目录
+/.tmp/
