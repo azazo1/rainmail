@@ -147,7 +147,6 @@ jobs:
           cache: true
 
       - name: 检查格式
-        if: matrix.platform != 'windows'
         shell: bash
         run: |
           set -euo pipefail
