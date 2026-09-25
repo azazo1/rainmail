@@ -1,0 +1,5 @@
+# 统一使用 LF 行尾.
+#
+# Git for Windows 默认 core.autocrlf=true, 会把检出的文本文件转成 CRLF,
+# 于是 gofmt 认为所有 .go 文件都需要重新格式化, Windows 上的格式检查必然失败.
+* text=auto eol=lf
