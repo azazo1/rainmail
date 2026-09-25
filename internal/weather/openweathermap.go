@@ -58,8 +58,8 @@ func (p *openWeatherMap) Hourly(ctx context.Context, req Request) (*Forecast, er
 			Timezone int    `json:"timezone"`
 		} `json:"city"`
 		List []struct {
-			DT      int64 `json:"dt"`
-			Main    struct {
+			DT   int64 `json:"dt"`
+			Main struct {
 				Temp float64 `json:"temp"`
 			} `json:"main"`
 			Weather []struct {

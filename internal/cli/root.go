@@ -10,10 +10,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/azazo1/rainmail/internal/app"
+	"github.com/azazo1/rainmail/internal/buildinfo"
 	"github.com/azazo1/rainmail/internal/config"
 	"github.com/azazo1/rainmail/internal/logx"
 	"github.com/azazo1/rainmail/internal/notify"
-	"github.com/azazo1/rainmail/internal/version"
 )
 
 // globalFlags 是各子命令共享的全局参数.
@@ -45,13 +45,14 @@ func newRootCommand() *cobra.Command {
 			"内置天气接口: open-meteo / openweathermap / qweather / seniverse / custom.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		Version:       buildinfo.Version(),
 		Example: "  rainmail config init   # 生成示例配置\n" +
 			"  rainmail check         # 立刻检查一次\n" +
 			"  rainmail run           # 常驻轮询",
 	}
 
 	root.PersistentFlags().StringVarP(&flags.configPath, "config", "c", "",
-		"配置文件路径, 默认依次查找 $RAINMAIL_CONFIG, 平台配置目录, 当前目录")
+		"配置文件路径, 默认 ~/.config/rainmail/config.toml, 也可用 $RAINMAIL_CONFIG 指定")
 	root.PersistentFlags().StringVar(&flags.logLevel, "log-level", "",
 		"日志级别 debug/info/warn/error, 覆盖配置文件")
 	root.PersistentFlags().StringVar(&flags.logFormat, "log-format", "",
@@ -160,7 +161,7 @@ func newVersionCommand() *cobra.Command {
 		Use:   "version",
 		Short: "打印版本信息",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			fmt.Fprintln(cmd.OutOrStdout(), version.String())
+			fmt.Fprintf(cmd.OutOrStdout(), "%s version %s\n", cmd.Root().Name(), buildinfo.Version())
 			return nil
 		},
 	}

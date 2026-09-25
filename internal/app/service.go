@@ -384,7 +384,7 @@ func (s *Service) cooldownReason(now time.Time, assessment weather.Assessment, f
 	}
 	return fmt.Sprintf("同一场降水已于 %s 提醒过, 距冷却结束还有 %s",
 		current.LastNotifiedAt.In(loc).Format("2006-01-02 15:04"),
-		(cooldown-elapsed).Round(time.Minute))
+		(cooldown - elapsed).Round(time.Minute))
 }
 
 func (s *Service) recordChecked(now time.Time) {

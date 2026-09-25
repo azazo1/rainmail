@@ -1,15 +1,10 @@
-# 构建信息, 注入 internal/version
-commit := `git rev-parse --short HEAD 2>/dev/null || echo unknown`
-build_date := `date -u +%Y-%m-%dT%H:%M:%SZ`
-ldflags := "-s -w -X github.com/azazo1/rainmail/internal/version.Commit=" + commit + " -X github.com/azazo1/rainmail/internal/version.Date=" + build_date
-
 [private]
 default:
     @just --list
 
-# 构建当前平台的二进制到 dist/rainmail
+# 构建当前平台的二进制到 dist/rainmail (开发构建, 版本显示 dev-build)
 build:
-    go build -trimpath -ldflags "{{ldflags}}" -o dist/rainmail .
+    go build -trimpath -o dist/rainmail .
 
 # 运行单元测试
 test:
@@ -18,6 +13,18 @@ test:
 # 静态检查
 lint:
     go vet ./...
+
+# 检查 Go 代码格式 (只报告, 不自动修改)
+fmt-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    unformatted="$(gofmt -l .)"
+    if [[ -n "$unformatted" ]]; then
+        echo "以下文件未通过 gofmt, 请手工格式化:"
+        echo "$unformatted"
+        exit 1
+    fi
+    echo "gofmt 检查通过"
 
 # 生成带注释的示例配置
 init-config *args:
@@ -39,11 +46,11 @@ test-email *args:
 test-notify *args:
     go run . test system {{args}}
 
-# 交叉编译三端产物到 dist/
+# 交叉编译三端产物到 dist/dev/ (仅供本地试跑, 不注入版本号)
 build-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    mkdir -p dist
+    mkdir -p dist/dev
     for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
         os="${target%/*}"
         arch="${target#*/}"
@@ -51,5 +58,24 @@ build-all:
         if [ "$os" = "windows" ]; then ext=".exe"; fi
         echo "building ${os}/${arch}"
         GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 \
-            go build -trimpath -ldflags "{{ldflags}}" -o "dist/rainmail-${os}-${arch}${ext}" .
+            go build -trimpath -o "dist/dev/rainmail-${os}-${arch}${ext}" .
     done
+
+# 根据当前平台生成发布产物 (注入版本号, 输出 dist/rainmail-<版本>-<平台>-<架构>.tar.gz)
+[macos]
+dist:
+    PROJECT_BUILD_VERSION="v$(bash scripts/build-version.sh)" bash scripts/dist.sh
+
+# 根据当前平台生成发布产物 (注入版本号, 输出 dist/rainmail-<版本>-<平台>-<架构>.tar.gz)
+[linux]
+dist:
+    PROJECT_BUILD_VERSION="v$(bash scripts/build-version.sh)" bash scripts/dist.sh
+
+# 根据当前平台生成发布产物 (注入版本号, 输出 dist/rainmail-<版本>-<平台>-<架构>.zip)
+[windows]
+[script('powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File')]
+dist:
+    $ErrorActionPreference = 'Stop'
+    $env:PROJECT_BUILD_VERSION = "v$(& 'scripts/build-version.ps1' | Out-String).Trim()"
+    & 'scripts/dist.ps1'
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }

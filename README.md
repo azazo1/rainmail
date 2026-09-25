@@ -15,7 +15,7 @@
 ## 快速开始
 
 ```shell
-just init-config   # 生成带注释的配置, 默认落在平台配置目录
+just init-config   # 生成带注释的配置到 ~/.config/rainmail/config.toml
 just check         # 立刻检查一次, 只展示判定结果
 just test-email    # 发一封测试邮件, 确认 SMTP 参数
 just run           # 常驻轮询
@@ -26,10 +26,13 @@ just run           # 常驻轮询
 ## 安装
 
 ```shell
-# 从源码构建当前平台
+# 从源码构建当前平台 (开发构建, 版本显示 dev-build)
 just build
 
-# 交叉编译三端产物到 dist/
+# 生成当前平台的发布产物, 注入版本号并输出到 dist/
+just dist
+
+# 交叉编译三端产物到 dist/dev/, 仅供本地试跑
 just build-all
 
 # 或者直接从模块安装
@@ -40,7 +43,6 @@ go install github.com/azazo1/rainmail@latest
 
 配置文件使用 TOML, 三个平台统一放在 `~/.config/rainmail/config.toml`.
 查找顺序为 `--config` 参数, `RAINMAIL_CONFIG` 环境变量, 最后落到上述默认路径.
-`rainmail config path` 打印当前生效的路径, `rainmail config show` 打印生效配置 (口令与密钥已打码).
 
 完整字段与注释见 [internal/config/example.toml](internal/config/example.toml),
 可以直接用 `rainmail config init` 生成一份. `rainmail config path` 打印当前生效的路径,
@@ -188,22 +190,26 @@ Windows 可以用任务计划程序创建"登录时触发"的任务, 程序填 `
 ## 目录结构
 
 ```text
-main.go             程序入口
-internal/cli        命令行定义
-internal/app        业务流程编排
-internal/config     配置结构, 校验与版本迁移
-internal/weather    天气接口抽象与各接口实现
-internal/notify     提醒通道抽象, 邮件与系统通知
-internal/report     提醒文案渲染
-internal/state      去重与冷却所需的状态持久化
-internal/logx       日志设施
+main.go                 程序入口
+internal/cli            命令行定义
+internal/app            业务流程编排
+internal/config         配置结构, 校验与版本迁移
+internal/weather        天气接口抽象与各接口实现
+internal/notify         提醒通道抽象, 邮件与系统通知
+internal/report         提醒文案渲染
+internal/state          去重与冷却所需的状态持久化
+internal/logx           日志设施
+internal/buildinfo      构建期注入的版本号
+scripts                 发布脚本 (版本号计算, 归档与 dist)
+.github/workflows       CI 与发布流程
 ```
 
 ## 开发
 
 ```shell
-just test    # 单元测试
-just lint    # go vet
+just test        # 单元测试
+just lint        # go vet
+just fmt-check   # 检查格式, 只报告不自动修改
 ```
 
 ## 许可
