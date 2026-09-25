@@ -73,9 +73,17 @@ func TestDurationParsesStringAndSeconds(t *testing.T) {
 	}
 }
 
+// setHome 让 os.UserHomeDir 在 Unix 与 Windows 上都指向 dir:
+// 前者读 HOME, 后者读 USERPROFILE.
+func setHome(t *testing.T, dir string) {
+	t.Helper()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+}
+
 func TestResolveUsesFixedConfigPath(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setHome(t, home)
 	t.Setenv(EnvConfigPath, "")
 
 	path, err := Resolve("")
@@ -89,29 +97,31 @@ func TestResolveUsesFixedConfigPath(t *testing.T) {
 }
 
 func TestResolveHonorsExplicitAndEnv(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setHome(t, t.TempDir())
 
-	explicit, err := Resolve("/tmp/rainmail-explicit.toml")
+	explicit := filepath.Join(t.TempDir(), "explicit.toml")
+	got, err := Resolve(explicit)
 	if err != nil {
 		t.Fatalf("解析显式路径失败: %v", err)
 	}
-	if explicit != "/tmp/rainmail-explicit.toml" {
-		t.Fatalf("--config 应被原样采用, 实际为 %s", explicit)
+	if got != filepath.Clean(explicit) {
+		t.Fatalf("--config 应被原样采用, 实际为 %s", got)
 	}
 
-	t.Setenv(EnvConfigPath, "/tmp/rainmail-env.toml")
+	envPath := filepath.Join(t.TempDir(), "env.toml")
+	t.Setenv(EnvConfigPath, envPath)
 	fromEnv, err := Resolve("")
 	if err != nil {
 		t.Fatalf("解析环境变量路径失败: %v", err)
 	}
-	if fromEnv != "/tmp/rainmail-env.toml" {
+	if fromEnv != filepath.Clean(envPath) {
 		t.Fatalf("RAINMAIL_CONFIG 应被采用, 实际为 %s", fromEnv)
 	}
 }
 
 func TestStatePathUsesLocalStateDir(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setHome(t, home)
 
 	cfg := Default()
 	path, err := cfg.StatePath()
@@ -123,12 +133,13 @@ func TestStatePathUsesLocalStateDir(t *testing.T) {
 		t.Fatalf("状态文件路径应为 %s, 实际为 %s", want, path)
 	}
 
-	cfg.Repeat.StateFile = "/tmp/rainmail-state.json"
-	custom, err := cfg.StatePath()
+	custom := filepath.Join(t.TempDir(), "state.json")
+	cfg.Repeat.StateFile = custom
+	got, err := cfg.StatePath()
 	if err != nil {
 		t.Fatalf("解析自定义状态文件路径失败: %v", err)
 	}
-	if custom != "/tmp/rainmail-state.json" {
-		t.Fatalf("state_file 应被采用, 实际为 %s", custom)
+	if got != custom {
+		t.Fatalf("state_file 应被采用, 实际为 %s", got)
 	}
 }
